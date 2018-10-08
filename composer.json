@@ -1,5 +1,5 @@
 {
-    "name": "dmcbl/php-image-resize",
+    "name": "dmcblue/php-image-resize",
     "description": "Resizes images",
     "type": "library",
     "license": "MIT",
@@ -11,9 +11,6 @@
     ],
 	"autoload": {
         "psr-4": {"Dmcblue\\": "src/"}
-    },
-    "require": {
-        "vlucas/phpdotenv": "^2.5"
     },
     "require-dev": {
         "phpunit/phpunit": "7"
