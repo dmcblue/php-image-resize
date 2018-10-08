@@ -14,22 +14,21 @@ class ImageResizer {
 	 * @return \Dmcblue\ImageResize\Point
 	 */
 	public function getDimensions(Image $image, $type, $targetWidth, $targetHeight) {
-		$imageWidth = imagesx($image->resource);
-		$imageHeight = imagesy($image->resource);
+		$originalDimensions = $image->getDimensions();
 		$dimensions = new Point();
 		switch($type) {
 			case Type::CONTAIN:
 				$dimensions = $this->getDimensionsContain(
-					$imageWidth,
-					$imageHeight,
+					$originalDimensions->x,
+					$originalDimensions->y,
 					$targetWidth,
 					$targetHeight
 				);
 				break;
 			case Type::COVER:
 				$dimensions = $this->getDimensionsContain(
-					$imageWidth,
-					$imageHeight,
+					$originalDimensions->x,
+					$originalDimensions->y,
 					$targetWidth,
 					$targetHeight
 				);
@@ -98,6 +97,7 @@ class ImageResizer {
 			ceil($finalHeight)
 		);
 	}
+	
 	/**
 	 * Gets the correct filepath to the resized image
 	 * @param string $imagePath
@@ -129,8 +129,7 @@ class ImageResizer {
 
 		if (file_exists($targetPath)){
 			$targetImage = new Image($targetPath);
-			$targetImageWidth = imagesx($targetImage->resource);
-			$targetImageHeight = imagesy($targetImage->resource);
+			$targetDimensions = $targetImage->getDimensions();
 			
 			$newDimensions = 
 				$this->getDimensions(
@@ -140,9 +139,11 @@ class ImageResizer {
 					$targetHeight
 				);
 			
+			$targetImage = null;
+			
 			if (
-				$targetImageWidth == $newDimensions->x 
-				&& $targetImageHeight == $newDimensions->y
+				$targetDimensions->x == $newDimensions->x 
+				&& $targetDimensions->y == $newDimensions->y
 			) {
 				return true;
 			}
@@ -151,6 +152,13 @@ class ImageResizer {
 		return false;
 	}
 	
+	/**
+	 * Resizes an image given its file path
+	 * It will overwrite any file that does not have the correct dimensions.
+	 * @param type $imagePath
+	 * @param \Dmcblue\ImageResize\Config $config
+	 * @param type $force Whether to overwrite existing file
+	 */
 	public function resize($imagePath, Config $config, $force = false) {
 		$image = new Image($imagePath);
 		
@@ -164,7 +172,14 @@ class ImageResizer {
 					$sizeConfig->height, 
 					$sizeConfig->postfix
 				);
-			if ($force || !$exists) {
+			$isTooSmall = !$config->doesEnlarge;
+			if ($isTooSmall) {
+				$dimensions = $image->getDimensions();
+				$isTooSmall = $dimensions->x <= $sizeConfig->width
+					&& $dimensions->y <= $sizeConfig->height;
+			}
+			
+			if (($force || !$exists) && !$isTooSmall) {
 				$resizedImage = 
 					$this->resizeImage(
 						$image, 
@@ -179,6 +194,27 @@ class ImageResizer {
 						$sizeConfig->postfix
 					);
 				$resizedImage->save($targetPath);
+				$resizedImage = null;
+			}
+		}
+		
+		$image = null;
+	}
+	
+	/**
+	 * Resizes all images in a folder
+	 * @param \Dmcblue\ImageResize\Config $config
+	 * @param type $force
+	 */
+	public function resizeAll(Config $config, $force = false) {
+		$files = array_diff(scandir($config->originalPath), ['.', '..']);
+		foreach($files as $file) {
+			if(Image::isSupported($config->originalPath.DIRECTORY_SEPARATOR.$file)) {
+				$this->resize(
+					$config->originalPath.DIRECTORY_SEPARATOR.$file,
+					$config,
+					$force
+				);
 			}
 		}
 	}

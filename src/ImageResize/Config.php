@@ -7,6 +7,8 @@ class Config {
 	public $originalPath;
 	/** Configs for resizing categories */
 	public $sizeConfigs = [];
+	/** Whether images should be resized larger */
+	public $doesEnlarge = false;
 	
 	/**
 	 * Class constructor. Accepts either a set of parameters or a single
@@ -14,15 +16,19 @@ class Config {
 	 * @param type $originalPath The path to the images OR the config array
 	 * @param type $sizeConfigs [Optional] Array of SizeConfigs
 	 */
-	public function __construct ($originalPath, $sizeConfigs = null) {
+	public function __construct ($originalPath, $sizeConfigs = null, $doesEnlarge = false) {
 		if(is_array($originalPath)) {
 			$configArray = $originalPath; //change variable just for clarity
-			$this->originalPath = $configArray['originalPath'];
+			$this->originalPath = (string)$configArray['originalPath'];
+			$this->doesEnlarge = array_key_exists('doesEnlarge', $configArray)
+				? (boolean)$configArray['doesEnlarge']
+				: $this->doesEnlarge;
 			foreach($configArray['sizeConfigs'] as $sizeConfigVars) {
 				$this->sizeConfigs[] = new SizeConfig($sizeConfigVars);
 			}
 		} else {
 			$this->originalPath = (string)$originalPath;
+			$this->doesEnlarge = (boolean)$doesEnlarge;
 			$this->sizeConfigs = $sizeConfigs;
 		}
 	}
